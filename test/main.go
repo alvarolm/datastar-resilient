@@ -32,7 +32,6 @@ func main() {
 	mux.HandleFunc("/api/random-failures", randomFailuresSSE)
 	mux.HandleFunc("/api/delayed-start", delayedStartSSE)
 	mux.HandleFunc("/api/inactivity-test", inactivityTestSSE)
-	mux.HandleFunc("/api/intermittent", intermittentSSE)
 
 	log.Printf("🚀 Test server starting on http://localhost%s\n", port)
 	log.Printf("📝 Testing resilient library with datastar-go\n")
