@@ -522,18 +522,5 @@ The script will:
 - ✅ Serve source files directly from `/src` (no bundling required!)
 - ✅ Changes to source files take effect immediately - just refresh your browser!
 
-### Testing
-
-To run the full test suite:
-
-```bash
-./build.sh
-cd test
-go run .
-```
-
-This will start a local server at `http://localhost:8080`.
-
-- **Full Test**: Includes various SSE scenarios and edge cases
 
 See [test/README.md](test/README.md) for detailed test scenarios and documentation.
