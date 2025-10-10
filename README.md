@@ -1,3 +1,6 @@
+[![npm version](https://img.shields.io/npm/v/@alvarolm/resilient.svg)](https://www.npmjs.com/package/@alvarolm/resilient)
+[![license](https://img.shields.io/npm/l/@alvarolm/resilient.svg)](https://github.com/alvarolm/datastar-resilient/blob/main/LICENSE)
+
 ![thinkaboutit](thinkaboutit.png)
 
 I believe it's not the (web) app user's responsibility to take action if something breaks (It could be the connection or something else).
@@ -52,11 +55,30 @@ The library is modular and organized into separate concerns:
 - **Inactivity Detection**: Optional heartbeat monitoring that reconnects if no SSE chunks are received within a configurable timeout
 - **Backoff Strategy**: Flexible retry logic via `backoffCalculator` that can distinguish between initial connection attempts and reconnections, with ability to stop retrying by returning `false`
 
+## Installation
+
+### NPM
+
+```bash
+npm install @alvarolm/resilient
+```
+
+### CDN
+
+You can also use the library directly from jsDelivr CDN:
+
+```html
+<script type="module">
+  import { LoadDatastarPlugin } from "https://cdn.jsdelivr.net/gh/alvarolm/datastar-resilient@0.1.0/dist/resilient.min.js";
+  ...
+</script>
+```
+
 ## Example Usage
 
 ### Basic Setup
 
-**Note:** The examples below use `"./dist/resilient.min.js"` as the import path. Adjust the path based on your file structure.
+**Note:** The examples below use `"./dist/resilient.min.js"` as the import path. Adjust the path based on your file structure, or use the CDN URL above.
 
 ```html
 <script type="module">

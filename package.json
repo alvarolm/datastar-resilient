@@ -1,20 +1,7 @@
 {
-  "name": "resilient",
+  "name": "@alvarolm/resilient",
   "version": "0.1.0",
   "description": "Automatic reconnection and resilience for Datastar SSE connections",
-  "type": "module",
-  "main": "dist/resilient.js",
-  "module": "dist/resilient.js",
-  "exports": {
-    ".": {
-      "import": "./dist/resilient.js"
-    }
-  },
-  "scripts": {
-    "build": "./build.sh",
-    "build:watch": "./build.sh --watch",
-    "clean": "rm -rf dist"
-  },
   "keywords": [
     "datastar",
     "sse",
@@ -22,9 +9,33 @@
     "resilience",
     "fetch"
   ],
-  "author": "",
+  "homepage": "https://github.com/alvarolm/datastar-resilient#readme",
+  "bugs": {
+    "url": "https://github.com/alvarolm/datastar-resilient/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alvarolm/datastar-resilient.git"
+  },
   "license": "MIT",
+  "author": "Alvaro Leiva M.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/resilient.js"
+    }
+  },
+  "main": "dist/resilient.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "./build.sh",
+    "build:watch": "./build.sh --watch",
+    "clean": "rm -rf dist"
+  },
   "devDependencies": {
     "esbuild": "^0.24.2"
-  }
+  },
+  "module": "dist/resilient.js"
 }
