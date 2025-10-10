@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test 1: Stable Connection</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div
+      class="test-card"
+      data-signals='{
+             "status": "",
+             "count": 0,
+             "logs": []
+         }'
+      data-on-load="new Resilient.Retryer(el, {
+            debug: true,
+            enableDatastarSignals: 'status',
+            backoffCalculator: Resilient.SimpleBackoffCalculator(
+                {maxInitialAttempts: 5, initialDelayMs: 20, maxDelayMs: 500, baseDelayMs:100, baseMultiplier: 2}),
+            inactivityTimeoutMs: 1000,
+         })"
+      data-on-connect="@get('/api/stable', {openWhenHidden: true})"
+    >
+      <a class="endpoint" href="/api/stable" target="_blank">/api/stable</a>
+      <h2>Stable Connection</h2>
+      <p class="description">
+        Reliable SSE stream that never fails. Sends updates every 0.5 seconds.
+      </p>
+
+      <div
+        class="status-bar"
+        data-class='{
+                  "status-unknown": $status === "connecting",
+                  "status-ok": $status === "connected",
+                  "status-failed": $status === "disconnected"
+              }'
+      >
+        <div class="indicator"></div>
+        <span data-text="$status.toUpperCase()"></span>
+      </div>
+      <div id="stable-feed"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" data-text="$count"></div>
+          <div class="stat-label">Events</div>
+        </div>
+      </div>
+
+      <div class="data-display">
+        <pre data-text="$logs.slice(-5).join('\n')"></pre>
+      </div>
+
+      <div class="test-status status-unknown">
+        <span>Processing</span>
+      </div>
+    </div>
+    <script type="module">
+      import { Start, Finish } from "/tests/consoleRecorder.js";
+
+      Start("stable_test");
+
+      import { LoadDatastarPlugin } from "/src/index.js";
+      import { load } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.5/bundles/datastar.js";
+
+      LoadDatastarPlugin(load);
+
+      // make sure:
+      // - the first datastar signal is "disconnected", the second "connecting" and the third "connected"
+      // - the retryer instance shows connected=true and reconnections=0 after all states are received
+      // all this within a reasonable timeout
+
+      const timeoutDuration = 5000; // 5 seconds
+      let stateCounter = 0;
+      const expectedStates = ["disconnected", "connecting", "connected"];
+
+      // Set timeout to check if all states were received
+      setTimeout(() => {
+        if (stateCounter < expectedStates.length) {
+          console.error(
+            `Test failed: Timeout after 5s. Only received ${stateCounter} of ${expectedStates.length} expected states`
+          );
+        } else {
+          const r = Resilient.GetRetryer(document.querySelector(".test-card"));
+
+          if (!r) {
+            console.error("Test failed: Could not find Retryer instance");
+            Finish({ pass: false });
+            return;
+          }
+
+          if (!r.connected) {
+            console.error(
+              "Test failed: Retryer is not in connected state after all expected states received"
+            );
+            Finish({ pass: false });
+            return;
+          }
+
+          if (r.reconnections !== 0) {
+            console.error(
+              `Test failed: Expected 0 reconnections but got ${r.reconnections}`
+            );
+            Finish({ pass: false });
+            return;
+          }
+
+          if (r.lastStartTime === null) {
+            console.error(
+              "Test failed: lastStartTime is null, expected a valid timestamp"
+            );
+            Finish({ pass: false });
+            return;
+          }
+
+          console.log("TEST PASSED");
+          Finish({ pass: true });
+          return;
+        }
+      }, timeoutDuration);
+
+      document.addEventListener("datastar-fetch", (event) => {
+        if (event.detail.type === "datastar-patch-signals") {
+          const signals = JSON.parse(event.detail.argsRaw.signals);
+          if ("status" in signals) {
+            const newStatus = signals.status;
+            const expectedState = expectedStates[stateCounter];
+            console.assert(
+              newStatus === expectedState,
+              `Expected state ${expectedState} but got ${newStatus} at step ${
+                stateCounter + 1
+              }`
+            );
+            stateCounter++;
+
+            // Clear timeout if all states were received successfully
+            if (stateCounter === expectedStates.length) {
+              console.log(
+                "CONNECTION STATES: All expected states received in order"
+              );
+            }
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

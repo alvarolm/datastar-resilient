@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test 3: Delayed Start</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div
+      class="test-card"
+      data-signals='{
+             "status": "connecting",
+             "count": 0,
+             "logs": []
+         }'
+      data-on-load="new Resilient.Retryer(el, {
+             debug: true,
+             enableDatastarSignals: 'status',
+             backoffCalculator: Resilient.SimpleBackoffCalculator(
+                {maxInitialAttempts: 5, initialDelayMs: 20, maxDelayMs: 500, baseDelayMs:100, baseMultiplier: 2}),
+            inactivityTimeoutMs: 3100, // just over the 3 second delay
+            
+         })"
+      data-on-connect="@get('/api/delayed-start', {openWhenHidden: true})"
+    >
+      <a class="endpoint" href="/api/delayed-start" target="_blank"
+        >/api/delayed-start</a
+      >
+      <h2>Delayed Start</h2>
+      <p class="description">
+        3 second delay before connection starts. Tests initial connection
+        patience.
+      </p>
+
+      <div
+        class="status-bar"
+        data-class='{
+            "status-unknown": $status === "connecting",
+            "status-ok": $status === "connected",
+            "status-failed": $status === "disconnected"
+        }'
+      >
+        <div class="indicator"></div>
+        <span data-text="$status.toUpperCase()"></span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" data-text="$count"></div>
+          <div class="stat-label">Events</div>
+        </div>
+      </div>
+
+      <div class="data-display">
+        <pre data-text="$logs.slice(-5).join('\n')"></pre>
+      </div>
+
+      <div class="test-status status-unknown">
+        <span>Processing</span>
+      </div>
+    </div>
+    <script type="module">
+      import { Start, Finish } from "/tests/consoleRecorder.js";
+
+      Start("delayed_start_test");
+
+      import { LoadDatastarPlugin } from "/src/index.js";
+      import { load } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.5/bundles/datastar.js";
+
+      LoadDatastarPlugin(load);
+
+      // make sure:
+      // - the retryer instance shows connected=true and reconnections=0 after connection
+      // all this within a reasonable timeout
+
+      const timeoutDuration = 5000; // 5 seconds
+
+      // Set timeout to check if connection was established
+      setTimeout(() => {
+        const r = Resilient.GetRetryer(document.querySelector(".test-card"));
+
+        if (!r) {
+          console.error("Test failed: Could not find Retryer instance");
+          Finish({ pass: false });
+          return;
+        }
+
+        if (!r.connected) {
+          console.error(
+            "Test failed: Retryer is not in connected state after timeout"
+          );
+          Finish({ pass: false });
+          return;
+        }
+
+        if (r.reconnections !== 0) {
+          console.error(
+            `Test failed: Expected 0 reconnections but got ${r.reconnections}`
+          );
+          Finish({ pass: false });
+          return;
+        }
+
+        console.log("TEST PASSED");
+        Finish({ pass: true });
+      }, timeoutDuration);
+    </script>
+  </body>
+</html>

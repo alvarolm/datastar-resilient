@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resilient Library Test</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        .nav-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+        .nav-btn {
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            min-width: 100px;
+        }
+        .nav-btn:hover:not(:disabled) {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .test-indicator {
+            text-align: center;
+            color: #64748b;
+            font-size: 1rem;
+        }
+        .test-indicator .current {
+            color: #38bdf8;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .test-container {
+            width: 100%;
+            margin: 0 auto;
+        }
+        .test-card {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Resilient Library Test</h1>
+    </header>
+
+    <div class="info">
+        <h3>Test Instructions</h3>
+        <p>Use the navigation arrows to switch between tests. Watch the status indicators and open the browser console to see detailed logs.</p>
+    </div>
+
+    <div class="nav-container">
+        <button class="nav-btn" id="prevBtn" onclick="previousTest()">← Previous</button>
+        <div class="test-indicator">
+            <div><span class="current" id="currentTest">1</span> / 4</div>
+            <div id="testName">Stable Connection</div>
+        </div>
+        <button class="nav-btn" id="nextBtn" onclick="nextTest()">Next →</button>
+    </div>
+
+    <div class="test-container" id="testContainer">
+        <iframe id="testFrame" src="/tests/1.html" style="width: 100%; height: 100vh;border: none;"></iframe>
+    </div>
+</div>
+
+<script>
+    const tests = [
+        { name: 'Stable Connection', file: '/tests/1.html' },
+        { name: 'Random Failures', file: '/tests/2.html' },
+        { name: 'Delayed Start', file: '/tests/3.html' },
+        { name: 'Inactivity Detection', file: '/tests/4.html' }
+    ];
+
+    let currentTestIndex = 0;
+
+    function renderTest(index) {
+        const test = tests[index];
+        const iframe = document.getElementById('testFrame');
+        iframe.src = test.file;
+        document.getElementById('currentTest').textContent = index + 1;
+        document.getElementById('testName').textContent = test.name;
+        document.getElementById('prevBtn').disabled = index === 0;
+        document.getElementById('nextBtn').disabled = index === tests.length - 1;
+    }
+
+    function previousTest() {
+        if (currentTestIndex > 0) {
+            currentTestIndex--;
+            renderTest(currentTestIndex);
+        }
+    }
+
+    function nextTest() {
+        if (currentTestIndex < tests.length - 1) {
+            currentTestIndex++;
+            renderTest(currentTestIndex);
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') previousTest();
+        if (e.key === 'ArrowRight') nextTest();
+    });
+
+    window.addEventListener('load', () => {
+        renderTest(0);
+    });
+</script>
+
+</body>
+</html>
