@@ -46,15 +46,6 @@ The library is modular and organized into separate concerns:
 4. **Shared Utilities** (`shared.js`) - Common utilities, data structures, and constants used across modules
 5. **Entry Point** (`index.js`) - Public API exports
 
-### Key Components
-
-- **Element-to-Retryer Mapping**: Uses WeakMap (`ElementIndex`) to associate DOM elements with their Retryer instances.
-- **Fetch ID Mapping**: Uses temporary Map (`fetchIdToElement`) to associate fetch requests with their originating elements.
-- **AbortController Chain**: Properly handles cancellation through layered abort signals, supporting both user-initiated and retryer-initiated aborts
-- **Signal System**: Optional Datastar signal integration for reactive connection state updates (via `enableDatastarSignals` option)
-- **Inactivity Detection**: Optional heartbeat monitoring that reconnects if no SSE chunks are received within a configurable timeout
-- **Backoff Strategy**: Flexible retry logic via `backoffCalculator` that can distinguish between initial connection attempts and reconnections, with ability to stop retrying by returning `false`
-
 ## Installation
 
 ### NPM
