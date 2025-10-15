@@ -30,7 +30,7 @@ export function SimpleBackoffCalculator({
 
   return function (retryCount, _, reconnections) {
     // Handle initial connection attempts
-    if (reconnections === 0) {
+    if (reconnections === -1) {
       initialRetryCount++;
       if (maxInitialAttempts > 0 && initialRetryCount > maxInitialAttempts) {
         return false;
