@@ -7,17 +7,13 @@ I believe it's not the (web) app user's responsibility to take action if somethi
 As developers, we should aim to provide resilient solutions that don't rely on the users or third parties.
 For me, this is a must for every decent product or service that respects the end user.
 
-<div style="color: red; font-size: 1.3em;">
-
-> **Note:** This is a new library looking for improvements. It may contain unexpected behaviors. Contributions, opinions or feedback of any kind are more than welcome and greatly appreciated!
-
-</div>
-
-<div style="color: red; font-size: 1.3em;">
-
-> **Important:** This code was implemented with the aid of Claude Code and has not been actively tested.
-
-</div>
+> [!CAUTION]
+> **Note:** This is a new library looking for improvements. It may contain unexpected behaviors Contributions, opinions or feedback of any kind are more than welcome and greatly appreciated!
+>
+>**Important:** This code was implemented with the aid of Claude Code and has not been actively tested.
+>
+> The original author of datastar, has stated this solution doesn't aligns with datastar, and it can be implemented solely with the datastar client.
+> So, I recommend you, to first attempt to overcome any need for this library and solely with the datastar client.
 
 ## Why "Resilient"?
 
