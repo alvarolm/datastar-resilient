@@ -8,12 +8,12 @@ As developers, we should aim to provide resilient solutions that don't rely on t
 For me, this is a must for every decent product or service that respects the end user.
 
 > [!CAUTION]
-> **Note:** This is a new library looking for improvements. It may contain unexpected behaviors Contributions, opinions or feedback of any kind are more than welcome and greatly appreciated!
+> #### This is a new library looking for improvements. It may contain unexpected behaviors Contributions, opinions or feedback of any kind are more than welcome and greatly appreciated!
 >
->**Important:** This code was implemented with the aid of Claude Code and has not been actively tested.
+> #### This code was implemented with the aid of Claude Code and has not been actively tested.
 >
-> The original author of datastar, has stated this solution doesn't aligns with datastar, and it can be implemented solely with the datastar client.
-> So, I recommend you, to first attempt to overcome any need for this library and solely with the datastar client.
+> #### The original author of datastar, has stated this solution doesn't aligns with datastar, and it can be implemented solely with the datastar client.
+> #### So, I recommend you, to first attempt to overcome any need for this library.
 
 ## Why "Resilient"?
 
