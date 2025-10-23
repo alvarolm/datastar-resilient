@@ -202,6 +202,7 @@ var ContentType = class {
 };
 
 // src/datastar.js
+var DATASTAR_FETCH_EVENT = "datastar-fetch";
 function FetchReturn(response, transformStream) {
   const transformedBody = response.body.pipeThrough(transformStream);
   return new Response(transformedBody, {
@@ -218,7 +219,7 @@ function SendSignal(signal) {
       signals: JSON.stringify(signal)
     }
   };
-  document.dispatchEvent(new CustomEvent("datastar-fetch", { detail }));
+  document.dispatchEvent(new CustomEvent(DATASTAR_FETCH_EVENT, { detail }));
 }
 var SIGNALS_CONNECTION_STATES = {
   CONNECTING: "connecting",
@@ -226,41 +227,57 @@ var SIGNALS_CONNECTION_STATES = {
   DISCONNECTED: "disconnected"
 };
 var fetchCounter = 0;
-var DatastarPlugin = {
-  type: "watcher",
-  name: "element-fetch-mapper",
-  onGlobalInit: (ctx) => {
-    for (const actionName in ctx.actions) {
-      const original = ctx.actions[actionName].fn;
-      ctx.actions[actionName].fn = (actionCtx, url, args = {}) => {
-        const hasRetryer = !!ElementIndex.get(actionCtx.el);
-        if (!hasRetryer) {
-          return original(actionCtx, url, args);
-        }
-        const fetchId = `${++fetchCounter}`;
-        FetchIdToElement.set(fetchId, actionCtx.el);
-        setTimeout(() => FetchIdToElement.delete(fetchId), 5e3);
-        args.headers = { ...args.headers, [FetchIdHeader]: fetchId };
-        args.retryMaxCount = 0;
-        return original(actionCtx, url, args).catch((error) => {
-          if (error?.message?.startsWith("FetchFailed")) {
-            InterceptorLogger.info(
-              `[Interceptor] Suppressed Datastar FetchFailed error, Retryer will handle reconnection for:`,
-              actionCtx.el
-            );
-            return;
-          }
-          throw error;
-        });
-      };
+function wrapFetchAction(originalAction) {
+  return async (ctx, url, args = {}) => {
+    const hasRetryer = !!ElementIndex.get(ctx.el);
+    if (!hasRetryer) {
+      return originalAction(ctx, url, args);
     }
-  }
-};
-function LoadDatastarPlugin(load) {
+    const fetchId = `${++fetchCounter}`;
+    FetchIdToElement.set(fetchId, ctx.el);
+    setTimeout(() => FetchIdToElement.delete(fetchId), 5e3);
+    args.headers = { ...args.headers, [FetchIdHeader]: fetchId };
+    args.retryMaxCount = 0;
+    try {
+      return await originalAction(ctx, url, args);
+    } catch (error) {
+      if (error?.message?.startsWith("FetchFailed")) {
+        InterceptorLogger.info(
+          `[Interceptor] Suppressed Datastar FetchFailed error, Retryer will handle reconnection for:`,
+          ctx.el
+        );
+        return;
+      }
+      throw error;
+    }
+  };
+}
+function LoadDatastarPlugin(datastarExports) {
   try {
-    load(DatastarPlugin);
+    const { action, actions } = datastarExports;
+    if (!action || !actions) {
+      throw new Error(
+        "LoadDatastarPlugin requires { action, actions } from Datastar v1.0.0-RC.6. Import them from your Datastar bundle and pass them to LoadDatastarPlugin."
+      );
+    }
+    const fetchActions = ["get", "post"];
+    for (const actionName of fetchActions) {
+      const originalAction = actions[actionName];
+      if (!originalAction) {
+        throw new Error(
+          `[Resilient] Action '${actionName}' not found in Datastar. Cannot wrap missing action.`
+        );
+      }
+      action({
+        name: actionName,
+        apply: wrapFetchAction(originalAction)
+      });
+      InterceptorLogger.info(`[Resilient] Wrapped Datastar action: ${actionName}`);
+    }
+    InterceptorLogger.info("[Resilient] Successfully loaded Datastar plugin");
   } catch (e) {
-    console.error("[Interceptor] Failed to load DatastarPlugin", e);
+    console.error("[Resilient] Failed to load DatastarPlugin:", e);
+    throw e;
   }
 }
 
@@ -274,7 +291,7 @@ function SimpleBackoffCalculator({
 } = {}) {
   let initialRetryCount = 0;
   return function(retryCount, _, reconnections) {
-    if (reconnections === 0) {
+    if (reconnections === -1) {
       initialRetryCount++;
       if (maxInitialAttempts > 0 && initialRetryCount > maxInitialAttempts) {
         return false;
@@ -600,8 +617,15 @@ var originalFetch = window.fetch;
 window.fetch = async function(resource, init) {
   const { retryer } = getRetryer(resource, init);
   if (!retryer) {
+    InterceptorLogger.info(
+      "[Interceptor] No Retryer associated with fetch, calling original fetch."
+    );
     return originalFetch(resource, init);
   }
+  InterceptorLogger.info(
+    "[Interceptor] Intercepted fetch with Retryer:",
+    retryer
+  );
   if (retryer.options.requestInterceptor) {
     ({ resource, init } = retryer.options.requestInterceptor({
       resource,

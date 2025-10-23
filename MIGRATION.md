@@ -122,8 +122,8 @@ Existing tests need to be updated to use Datastar v1.0.0-RC.6 with the new API.
 
 | Resilient Version | Datastar v1.0.0-RC.5 | Datastar v1.0.0-RC.6 |
 |-------------------|----------------------|----------------------|
-| 0.1.X (old)       | ✅                   | ❌                   |
-| 0.2.X (new)       | ❌                   | ✅                   |
+| 0.1.0-0.1.1       | ✅                   | ❌                   |
+| 0.1.2+            | ❌                   | ✅                   |
 
 ## Notes
 

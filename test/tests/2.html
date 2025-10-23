@@ -92,7 +92,7 @@
           return;
         }
 
-        if (r.reconnections === 0) {
+        if (r.reconnections < 1) {
           console.error(
             `Test failed: Expected at least 1 reconnection but got ${r.reconnections}`
           );

@@ -66,7 +66,7 @@ You can also use the library directly from jsDelivr CDN:
 
 ```html
 <script type="module">
-  import { LoadDatastarPlugin } from "https://cdn.jsdelivr.net/gh/alvarolm/datastar-resilient@0.1.0/dist/resilient.min.js";
+  import { LoadDatastarPlugin } from "https://cdn.jsdelivr.net/gh/alvarolm/datastar-resilient@0.1.2/dist/resilient.min.js";
   ...
 </script>
 ```
@@ -142,15 +142,15 @@ new window.Resilient.Retryer(element, {
 
   // Custom backoff strategy
   // Default: exponential backoff with 2 multiplier, capped at 30s
-  // For initial connection (reconnections === 0): max 3 attempts with 20ms delay
+  // For initial connection (reconnections === -1): max 3 attempts with 20ms delay
   // Return false to stop retrying entirely
   backoffCalculator: (retryCount, lastStartTime, reconnections) => {
     // retryCount: consecutive retry attempts (starts at 0)
     // lastStartTime: timestamp when the last request started
-    // reconnections: number of successful connections (0 = initial connection)
+    // reconnections: number of successful connections (-1 = initial connection, 0+ = reconnections)
 
     // Example: limit initial connection to 5 attempts
-    if (reconnections === 0 && retryCount > 5) {
+    if (reconnections === -1 && retryCount > 5) {
       return false;  // Stop retrying
     }
     return Math.min(10000, 1000 * Math.pow(2, retryCount));
@@ -309,9 +309,10 @@ retryer?.destroy();
 
 The following are available as named imports from `dist/resilient.min.js`:
 
-**`LoadDatastarPlugin(load)`**
+**`LoadDatastarPlugin({ action, actions })`**
 - Function to load the Datastar plugin
 - Must be called before Datastar initializes
+- Requires `action` and `actions` from Datastar v1.0.0-RC.6
 
 **`ToggleInterceptorLogging(enabled)`**
 - Function to enable/disable fetch interceptor logging
@@ -383,10 +384,10 @@ When a Retryer is created, it immediately attempts to establish an initial conne
 1. On initialization, calls `notifyRequestStopped()` which triggers reconnection logic
 2. Dispatches a `connect` event to trigger the Datastar action (e.g., `data-on:connect`)
 3. The default `backoffCalculator` handles initial connection attempts specially:
-   - When `reconnections === 0` (first connection), uses a short 20ms delay
+   - When `reconnections === -1` (first connection), uses a short 20ms delay
    - Limits initial attempts to 3 by default (configurable via custom backoffCalculator)
    - Returns `false` to stop retrying if max attempts exceeded
-4. Once connected, `reconnections` counter increments and normal backoff applies
+4. Once connected, `reconnections` counter increments to 0 and normal backoff applies
 
 **Stopping Initial Connection Attempts:**
 
@@ -396,7 +397,7 @@ The backoffCalculator can return `false` to stop all retry attempts:
 new window.Resilient.Retryer(element, {
   backoffCalculator: (retryCount, lastStartTime, reconnections) => {
     // Stop after 5 initial connection attempts
-    if (reconnections === 0 && retryCount > 5) {
+    if (reconnections === -1 && retryCount > 5) {
       return false;  // Stops retrying entirely
     }
     return Math.min(30000, 1000 * Math.pow(2, retryCount));
@@ -470,7 +471,7 @@ const retryer = new window.Resilient.Retryer(element, {
   enableDatastarSignals: 'feedStatus',  // Use Datastar signals for UI
   backoffCalculator: (retryCount, lastStartTime, reconnections) => {
     // Stop initial connection after 3 attempts
-    if (reconnections === 0 && retryCount > 3) {
+    if (reconnections === -1 && retryCount > 3) {
       return false;
     }
     // Exponential backoff for reconnections, capped at 30s
