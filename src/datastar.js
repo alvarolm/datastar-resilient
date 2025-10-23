@@ -6,28 +6,25 @@
  * This file contains code that relies on UNDOCUMENTED and INTERNAL Datastar
  * mechanisms, including but not limited to:
  *
- *   - Dispatching `datastar-signal-patch` custom events
- *   - Creating custom Datastar watcher plugins
- *   - Intercepting and wrapping Datastar action functions (ctx.actions)
+ *   - Dispatching custom Datastar events
+ *   - Wrapping Datastar action plugins
  *   - Manipulating Datastar request headers and arguments
- *   - Using plugin context APIs that may be internal-only
+ *   - Accessing internal action implementations
  *
- * ⚠️ THESE ARE NOT PART OF DATASTAR'S PUBLIC API ⚠️
+ * ⚠️ THE DATASTAR API HAS NO STABILITY GUARANTEES AND MAY CHANGE AT ANY MOMENT ⚠️
  *
- * This code works by hooking into Datastar's internals which may change or be
+ * This code works by hooking into Datastar's API which may change or be
  * removed at any time in future versions without notice or backwards
  * compatibility. Breaking changes are likely when upgrading Datastar.
  *
  * COMPATIBILITY & VERSION REQUIREMENTS:
  *
- *   - Compatible Datastar Version: v1.0.0-RC.5
+ *   - This library aims to be compatible with the latest version of Datastar
+ *   - Currently compatible with: v1.0.0-RC.6
+ *   - For support with older versions (v1.0.0-RC.5), see MIGRATION.md
  *   - DO NOT upgrade Datastar without verifying compatibility
  *   - The maintainer will make efforts to keep this code compatible with new
  *     Datastar versions, but updates may lag behind Datastar releases
- *   - Only use Datastar versions explicitly marked as compatible
- *
- * If Datastar provides official public APIs for these capabilities in the
- * future, this code likely wil be refactored to use those instead.
  *
  * Community contributions, pull requests, and compatibility updates for new
  * Datastar versions are more than welcome and greatly appreciated!
@@ -38,7 +35,8 @@
 import { ElementIndex, FetchIdToElement } from "./shared.js";
 import { InterceptorLogger } from "./interceptor.js";
 
-export const DATASTAR_DEBUG_SIGNAL_EVENT = "debug-datastar-signal";
+const DATASTAR_FETCH_EVENT = "datastar-fetch";
+const DATASTAR_SIGNAL_PATCH_EVENT = "datastar-signal-patch";
 
 export function FetchReturn(response, transformStream) {
   // Create new response with transformed body
@@ -75,7 +73,7 @@ export function SendSignal(signal) {
   };
 
   // Dispatch a 'datastar-fetch' event to be caught by the PatchSignals watcher.
-  document.dispatchEvent(new CustomEvent("datastar-fetch", { detail }));
+  document.dispatchEvent(new CustomEvent(DATASTAR_FETCH_EVENT, { detail }));
 }
 
 /**
@@ -94,60 +92,104 @@ export const SIGNALS_CONNECTION_STATES = {
 // counter for generating unique fetch IDs
 let fetchCounter = 0;
 
-const DatastarPlugin = {
-  type: "watcher",
-  name: "element-fetch-mapper",
-  onGlobalInit: (ctx) => {
-    // inject X-Fetch-Id header into all "ctx.actions".
-    // these will be picked up by the fetch interceptor
-    // so we can track which fetch belongs to which element.
-    //
-    // this mapping bridges the gap between Datastar actions (which have element context)
-    // and window.fetch (which doesnt), allowing us to retrieve the Retryer instance.
+// Store references to original fetch actions
+// const originalActions = {};
 
-    for (const actionName in ctx.actions) {
-      const original = ctx.actions[actionName].fn;
-      // this wrapper executes on EVERY request (e.g., every @get, @post call)
-      ctx.actions[actionName].fn = (actionCtx, url, args = {}) => {
-        // only modify elements with a Retryer instance
-        const hasRetryer = !!ElementIndex.get(actionCtx.el);
-        if (!hasRetryer) {
-          return original(actionCtx, url, args);
-        }
-
-        const fetchId = `${++fetchCounter}`;
-        FetchIdToElement.set(fetchId, actionCtx.el);
-        // cleanup fallback: normally deleted immediately at when fetch executes.
-        // this 5s timeout only fires if fetch never gets called (e.g., error before fetch starts).
-        setTimeout(() => FetchIdToElement.delete(fetchId), 5000);
-        args.headers = { ...args.headers, [FetchIdHeader]: fetchId };
-
-        // disable datastar built-in retry mechanism since we handle retries via the Retryer.
-        // setting retryMaxCount to 0 prevents any retries, but Datastar will still reject
-        // with a FetchFailed error wrapping "Max retries reached."
-        // we catch and suppress this error below to avoid console spam.
-        args.retryMaxCount = 0;
-
-        return original(actionCtx, url, args).catch((error) => {
-          // Suppress Datastar's FetchFailed errors since our Retryer handles reconnection.
-          if (error?.message?.startsWith("FetchFailed")) {
-            InterceptorLogger.info(
-              `[Interceptor] Suppressed Datastar FetchFailed error, Retryer will handle reconnection for:`,
-              actionCtx.el
-            );
-            return; // resolve with undefined
-          }
-          throw error; // re-throw other errors
-        });
-      };
+/**
+ * Wraps a Datastar fetch action to inject X-Fetch-Id headers and disable retries.
+ * This wrapper executes on get and post requests (e.g., @get and @post calls).
+ *
+ * @param {Function} originalAction - The original action function
+ * @returns {Function} The wrapped action function
+ */
+function wrapFetchAction(originalAction) {
+  return async (ctx, url, args = {}) => {
+    // only modify elements with a Retryer instance
+    const hasRetryer = !!ElementIndex.get(ctx.el);
+    if (!hasRetryer) {
+      return originalAction(ctx, url, args);
     }
-  },
-};
 
-export function LoadDatastarPlugin(load) {
+    const fetchId = `${++fetchCounter}`;
+    FetchIdToElement.set(fetchId, ctx.el);
+    // cleanup fallback: normally deleted immediately when fetch executes.
+    // this 5s timeout only fires if fetch never gets called (e.g., error before fetch starts).
+    setTimeout(() => FetchIdToElement.delete(fetchId), 5000);
+    args.headers = { ...args.headers, [FetchIdHeader]: fetchId };
+
+    // disable datastar built-in retry mechanism since we handle retries via the Retryer.
+    // setting retryMaxCount to 0 prevents any retries, but Datastar will still reject
+    // with an error, we catch and suppress this error below to avoid console spam.
+    args.retryMaxCount = 0;
+
+    try {
+      return await originalAction(ctx, url, args);
+    } catch (error) {
+      // suppress Datastar's FetchFailed errors since our Retryer handles reconnection.
+      if (error?.message?.startsWith("FetchFailed")) {
+        InterceptorLogger.info(
+          `[Interceptor] Suppressed Datastar FetchFailed error, Retryer will handle reconnection for:`,
+          ctx.el
+        );
+        return; // resolve with undefined
+      }
+      throw error; // re-throw other errors
+    }
+  };
+}
+
+/**
+ * Loads the Datastar plugin by wrapping fetch actions.
+ * This must be called AFTER Datastar is imported but BEFORE any Datastar attributes are processed.
+ *
+ * @param {Object} datastarExports - The Datastar exports object containing { action, actions }
+ * @param {Function} datastarExports.action - The action registration function from Datastar
+ * @param {Object} datastarExports.actions - The actions object from Datastar
+ *
+ * @example
+ * // Datastar v1.0.0-RC.6
+ * import { action, actions } from 'datastar';
+ * LoadDatastarPlugin({ action, actions });
+ */
+export function LoadDatastarPlugin(datastarExports) {
   try {
-    load(DatastarPlugin);
+    const { action, actions } = datastarExports;
+
+    if (!action || !actions) {
+      throw new Error(
+        "LoadDatastarPlugin requires { action, actions } from Datastar v1.0.0-RC.6. " +
+        "Import them from your Datastar bundle and pass them to LoadDatastarPlugin."
+      );
+    }
+
+    // wrap fetch actions
+    const fetchActions = ["get", "post"];
+
+    for (const actionName of fetchActions) {
+      const originalAction = actions[actionName];
+
+      if (!originalAction) {
+        throw new Error(
+          `[Resilient] Action '${actionName}' not found in Datastar. ` +
+          `Cannot wrap missing action.`
+        );
+      }
+
+      // save original for reference
+      // originalActions[actionName] = originalAction;
+
+      // register wrapped action
+      action({
+        name: actionName,
+        apply: wrapFetchAction(originalAction),
+      });
+
+      InterceptorLogger.info(`[Resilient] Wrapped Datastar action: ${actionName}`);
+    }
+
+    InterceptorLogger.info("[Resilient] Successfully loaded Datastar plugin");
   } catch (e) {
-    console.error("[Interceptor] Failed to load DatastarPlugin", e);
+    console.error("[Resilient] Failed to load DatastarPlugin:", e);
+    throw e;
   }
 }

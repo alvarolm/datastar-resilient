@@ -14,7 +14,7 @@
              "count": 0,
              "logs": []
          }'
-      data-on-load="new Resilient.Retryer(el, {
+      data-init="new Resilient.Retryer(el, {
              debug: true,
              enableDatastarSignals: 'status',
              backoffCalculator: Resilient.SimpleBackoffCalculator(
@@ -22,7 +22,7 @@
             inactivityTimeoutMs: 3100, // just over the 3 second delay
             
          })"
-      data-on-connect="@get('/api/delayed-start', {openWhenHidden: true})"
+      data-on:connect="@get('/api/delayed-start', {openWhenHidden: true})"
     >
       <a class="endpoint" href="/api/delayed-start" target="_blank"
         >/api/delayed-start</a
@@ -66,9 +66,9 @@
       Start("delayed_start_test");
 
       import { LoadDatastarPlugin } from "/src/index.js";
-      import { load } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.5/bundles/datastar.js";
+      import { action, actions } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.6/bundles/datastar.js";
 
-      LoadDatastarPlugin(load);
+      LoadDatastarPlugin({ action, actions });
 
       // make sure:
       // - the retryer instance shows connected=true and reconnections=0 after connection

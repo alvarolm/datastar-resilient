@@ -77,21 +77,23 @@ You can also use the library directly from jsDelivr CDN:
 
 **Note:** The examples below use `"./dist/resilient.min.js"` as the import path. Adjust the path based on your file structure, or use the CDN URL above.
 
+**Important:** This library aims to be compatible with the latest version of Datastar, currently **v1.0.0-RC.6**. If you're looking for support for v1.0.0-RC.5, please read [MIGRATION.md](MIGRATION.md).
+
 ```html
 <script type="module">
   // IMPORTANT: Resilient must be imported first, to ensure the fetch interceptor
   // is set up before Datastar initializes
   import { LoadDatastarPlugin } from "./dist/resilient.min.js";
-  import { load } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.5/bundles/datastar.js";
+  import { action, actions } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.6/bundles/datastar.js";
 
-  LoadDatastarPlugin(load);
+  LoadDatastarPlugin({ action, actions });
 </script>
 
-<!-- Create Retryer inline using data-on-load with 'el' reference -->
+<!-- Create Retryer inline using data-init with 'el' reference -->
 <!-- Note: Using Datastar signals for connection state (enableDatastarSignals option) -->
 <div data-signals="{isConnected: false}"
-     data-on-load="new Resilient.Retryer(el, {debug:true, enableDatastarSignals: 'isConnected'})"
-     data-on-connect="@get('/api/feed')">
+     data-init="new Resilient.Retryer(el, {debug:true, enableDatastarSignals: 'isConnected'})"
+     data-on:connect="@get('/api/feed')">
 
   <!-- Connection status indicator -->
   <div data-show="$isConnected !== 'connected'"
@@ -109,7 +111,7 @@ Alternatively, you can create the Retryer in a script block and use traditional 
 
 ```html
 <div id="my-feed"
-     data-on-connect="@get('/api/feed')">
+     data-on:connect="@get('/api/feed')">
   <!-- SSE content -->
 </div>
 
@@ -269,8 +271,8 @@ If you prefer Datastar's reactive signals over events:
 
 ```html
 <div data-signals="{connectionState: 'disconnected'}"
-     data-on-load="new Resilient.Retryer(el, {enableDatastarSignals: 'connectionState'})"
-     data-on-connect="@get('/api/feed')">
+     data-init="new Resilient.Retryer(el, {enableDatastarSignals: 'connectionState'})"
+     data-on:connect="@get('/api/feed')">
 
   <!-- Signal automatically updates with: "connecting", "connected", "disconnected" -->
   <div data-show="$connectionState !== 'connected'">
@@ -379,7 +381,7 @@ The following are available as named imports from `dist/resilient.min.js`:
 When a Retryer is created, it immediately attempts to establish an initial connection:
 
 1. On initialization, calls `notifyRequestStopped()` which triggers reconnection logic
-2. Dispatches a `connect` event to trigger the Datastar action (e.g., `data-on-connect`)
+2. Dispatches a `connect` event to trigger the Datastar action (e.g., `data-on:connect`)
 3. The default `backoffCalculator` handles initial connection attempts specially:
    - When `reconnections === 0` (first connection), uses a short 20ms delay
    - Limits initial attempts to 3 by default (configurable via custom backoffCalculator)
@@ -481,7 +483,7 @@ const retryer = new window.Resilient.Retryer(element, {
 ```html
 <!-- In your HTML -->
 <div data-signals="{feedStatus: 'disconnected'}"
-     data-on-load="/* create retryer with enableDatastarSignals: 'feedStatus' */">
+     data-init="/* create retryer with enableDatastarSignals: 'feedStatus' */">
 
   <div data-show="$feedStatus === 'connecting'">
     Connecting to feed...

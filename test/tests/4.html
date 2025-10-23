@@ -14,14 +14,14 @@
              "count": 0,
              "logs": []
          }'
-      data-on-load="new Resilient.Retryer(el, {
+      data-init="new Resilient.Retryer(el, {
              debug: true,
              enableDatastarSignals: 'status',
              backoffCalculator: Resilient.SimpleBackoffCalculator(
                 {maxInitialAttempts: 5, initialDelayMs: 20, maxDelayMs: 500, baseDelayMs:100, baseMultiplier: 2}),
              inactivityTimeoutMs: 500
          })"
-      data-on-connect="@get('/api/inactivity-test', {openWhenHidden: true})"
+      data-on:connect="@get('/api/inactivity-test', {openWhenHidden: true})"
     >
       <a class="endpoint" href="/api/inactivity-test" target="_blank"
         >/api/inactivity-test</a
@@ -64,9 +64,9 @@
       Start("inactivity_detection_test");
 
       import { LoadDatastarPlugin } from "/src/index.js";
-      import { load } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.5/bundles/datastar.js";
+      import { action, actions } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.6/bundles/datastar.js";
 
-      LoadDatastarPlugin(load);
+      LoadDatastarPlugin({ action, actions });
 
       // make sure:
       // - the retryer instance detects inactivity and triggers reconnection

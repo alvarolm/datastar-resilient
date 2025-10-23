@@ -82,8 +82,16 @@ window.fetch = async function (resource, init) {
   const { retryer } = getRetryer(resource, init);
 
   if (!retryer) {
+    InterceptorLogger.info(
+      "[Interceptor] No Retryer associated with fetch, calling original fetch."
+    );
     return originalFetch(resource, init);
   }
+
+  InterceptorLogger.info(
+    "[Interceptor] Intercepted fetch with Retryer:",
+    retryer
+  );
 
   if (retryer.options.requestInterceptor) {
     ({ resource, init } = retryer.options.requestInterceptor({

@@ -139,11 +139,11 @@ mux.HandleFunc("/api/my-test", myTestSSE)
 ```html
 <div class="test-card"
      data-signals="{status: 'connecting', count: 0, logs: []}"
-     data-on-load="new Resilient.Retryer(el, {
+     data-init="new Resilient.Retryer(el, {
          debug: true,
          enableConnectionDatastarSignals: 'status'
      })"
-     data-on-connect="$get('/api/my-test')">
+     data-on:connect="$get('/api/my-test')">
     <h2>My Test</h2>
     <!-- Your test UI -->
 </div>

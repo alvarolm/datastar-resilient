@@ -14,14 +14,14 @@
              "count": 0,
              "logs": []
          }'
-      data-on-load="new Resilient.Retryer(el, {
+      data-init="new Resilient.Retryer(el, {
             debug: true,
             enableDatastarSignals: 'status',
             backoffCalculator: Resilient.SimpleBackoffCalculator(
                 {maxInitialAttempts: 5, initialDelayMs: 20, maxDelayMs: 500, baseDelayMs:100, baseMultiplier: 2}),
             inactivityTimeoutMs: 1000,
          })"
-      data-on-connect="@get('/api/stable', {openWhenHidden: true})"
+      data-on:connect="@get('/api/stable', {openWhenHidden: true})"
     >
       <a class="endpoint" href="/api/stable" target="_blank">/api/stable</a>
       <h2>Stable Connection</h2>
@@ -62,10 +62,11 @@
 
       Start("stable_test");
 
-      import { LoadDatastarPlugin } from "/src/index.js";
-      import { load } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.5/bundles/datastar.js";
+      import { ToggleInterceptorLogging, LoadDatastarPlugin } from "/src/index.js";
+      import { action, actions } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.6/bundles/datastar.js";
 
-      LoadDatastarPlugin(load);
+      ToggleInterceptorLogging(true);
+      LoadDatastarPlugin({ action, actions });
 
       // make sure:
       // - the first datastar signal is "disconnected", the second "connecting" and the third "connected"
@@ -127,6 +128,9 @@
           if ("status" in signals) {
             const newStatus = signals.status;
             const expectedState = expectedStates[stateCounter];
+            console.log(
+              `CONNECTION STATES: Received status "${newStatus}", expected "${expectedState}"`
+            );
             console.assert(
               newStatus === expectedState,
               `Expected state ${expectedState} but got ${newStatus} at step ${
