@@ -1,6 +1,6 @@
 {
   "name": "@alvarolm/resilient",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Automatic reconnection and resilience for Datastar SSE connections",
   "keywords": [
     "datastar",
