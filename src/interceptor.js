@@ -106,18 +106,20 @@ window.fetch = async function (resource, init) {
   // create a new abort controller to manage fetch abortion
   const abortController = new AbortController();
 
-  // if there is an original signal, listen to it and forward the abort
+  // combine abort sources: manual controller, original signal, and optional timeout
+  const signals = [abortController.signal];
+
   if (init?.signal) {
-    init.signal.aborted
-      ? abortController.abort(init.signal.reason)
-      : init.signal.addEventListener(
-          "abort",
-          () => abortController.abort(init.signal.reason),
-          { once: true }
-        );
+    signals.push(init.signal);
   }
 
-  const newOptions = { ...init, signal: abortController.signal };
+  if (retryer.options.requestTimeoutMs > 0) {
+    signals.push(AbortSignal.timeout(retryer.options.requestTimeoutMs));
+  }
+
+  const compositeSignal = AbortSignal.any(signals);
+
+  const newOptions = { ...init, signal: compositeSignal };
 
   let response;
 

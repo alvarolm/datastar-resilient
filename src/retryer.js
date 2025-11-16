@@ -56,6 +56,7 @@ export function SimpleBackoffCalculator({
  * @param {Function} [options.backoffCalculator] - Function that takes (retryCount, lastStartTime, reconnections) and returns delay in ms or false to stop retrying. retryCount is consecutive attempts, lastStartTime is timestamp of last attempt, reconnections is total successful connections (-1 = initial connection, 0+ = reconnections). Return false to stop reconnection attempts entirely. Default uses exponential backoff capped at 30s, with max 3 attempts for initial connection (reconnections === -1).
  * @param {Function} [options.isFailedRequest] - Function that takes (from fetch) response and returns boolean. Default is response.status >= 400 (https://data-star.dev/essays/im_a_teapot/)
  * @param {number} [options.inactivityTimeoutMs=0] - Time in ms to consider connection inactive if no data received, if value is 0 or not set, inactivity is not checked. Default is 0.
+ * @param {number} [options.requestTimeoutMs=0] - Time in ms to abort the request if no response received. If 0 or not set, no timeout is applied. Default is 0.
  * @param {boolean} [options.enableConnectionEvents=false] - Enable dispatching of CONNECTED_EVENT and DISCONNECTED_EVENT. Default is false. Note: CONNECT_EVENT is always dispatched regardless of this setting.
  * @param {string} [options.enableDatastarSignals=""] - String key for Datastar signals. If set, sends signals with this key and values: "connecting", "connected", "disconnected". Default is empty (disabled).
  * @param {Function|null} [options.requestInterceptor=null] - Function to modify fetch requests before they execute. Takes ({ resource, init }) and returns { resource, init }. Resource can be string, URL, or Request object. Init is the optional RequestInit. Default is null (no modification).
@@ -88,6 +89,7 @@ export class Retryer {
         return response.status >= 400;
       },
       inactivityTimeoutMs: 0,
+      requestTimeoutMs: 0,
       enableConnectionEvents: false,
       enableDatastarSignals: "",
       requestInterceptor: null, // function ({ resource, init }) => ({ resource, init })
